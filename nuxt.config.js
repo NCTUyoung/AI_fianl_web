@@ -82,5 +82,7 @@ module.exports = {
   },
   generate: {
     dir:'docs'
-  }
-}
+  },
+  router: {
+    base: '/AI_final_web/'
+  }}
