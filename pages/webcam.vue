@@ -109,7 +109,7 @@ export default {
       // create a session
       const session = new InferenceSession({ backendHint: "wasm" });
       // load the ONNX model file
-      await session.loadModel('./unet_fast.onnx')
+      await session.loadModel('AI_final_web/unet_fast.onnx')
       const outputMap = await session.run(tensor);
 
       const outputTensor = outputMap.values().next().value;
