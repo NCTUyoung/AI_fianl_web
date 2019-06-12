@@ -1,14 +1,19 @@
 const colors = require('vuetify/es5/util/colors').default
-
+// console.log(process.env.NODE_ENV)
+const routerBase = process.env.NODE_ENV!== 'development' ? {
+  router: {
+    base: '/<repository_name>/'
+  }
+} : {}
 module.exports = {
   mode: 'universal',
   /*
    ** Headers of the page
    */
-  server: {
-    port: 3000, // default: 3000
-    host: '0.0.0.0',
-  },
+  // server: {
+  //   port: 3000, // default: 3000
+  //   host: '0.0.0.0',
+  // },
   head: {
     titleTemplate: '%s - ' + process.env.npm_package_name,
     title: process.env.npm_package_name || '',
@@ -83,6 +88,5 @@ module.exports = {
   generate: {
     dir:'docs'
   },
-  router: {
-    base: '/AI_final_web/'
-  }}
+ ...routerBase
+}
