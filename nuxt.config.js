@@ -2,7 +2,7 @@ const colors = require('vuetify/es5/util/colors').default
 // console.log(process.env.NODE_ENV)
 const routerBase = process.env.NODE_ENV!== 'development' ? {
   router: {
-    base: '/<repository_name>/'
+    base: '/AI_final_web/'
   }
 } : {}
 module.exports = {
