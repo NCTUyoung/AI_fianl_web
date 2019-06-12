@@ -2,16 +2,16 @@
   <v-container>
     <v-layout row wrap align-center justify-center>
       <v-flex xs12>
-        <video ref="video" id="video" width="640" height="480" autoplay ></video>
+        <video ref="video" id="video" width="320" height="240" autoplay ></video>
       </v-flex>
-      <canvas ref="output" id="output" width="700" height="700"></canvas>
+      <canvas ref="output" id="output" width="320" height="240"></canvas>
     </v-layout>
     <v-layout row wrap align-center justify-center>
       <v-flex shrink >
         <v-btn id="snap" v-on:click="capture()" class="green">Snap Photo</v-btn>
         <v-btn id="rm" v-on:click="remove()" class="red">Remove</v-btn>
         <v-btn id="m" v-on:click="runEnhance()" class="orange">RunModel</v-btn>
-        <canvas ref="canvas" id="canvas" width="640" height="480"></canvas>
+        <canvas ref="canvas" id="canvas" width="320" height="240"></canvas>
         <v-img id="i"></v-img>
       </v-flex>
     </v-layout>
@@ -65,7 +65,7 @@ export default {
   methods: {
     capture() {
       this.canvas = this.$refs.canvas
-      this.canvas.getContext("2d").drawImage(this.video, 0, 0, 640, 480);
+      this.canvas.getContext("2d").drawImage(this.video, 0, 0, 320, 240);
       // this.imgData =  this.canvas.getContext("2d").getImageData(10, 10, 50, 50);
 
       this.captures.push({
@@ -87,21 +87,24 @@ export default {
     },
     async runEnhance() {
       let ctx = this.canvas.getContext("2d")
-      const imageData = ctx.getImageData(0, 0, 320, 240);
-      console.log(imageData)
+      let c = document.getElementById("output")
+      let ct = c.getContext("2d")
+
+      const imageData = ctx.getImageData(0, 0, 256, 256);
+      ct.putImageData(imageData,0, 0)
       const { data, width, height } = imageData;
 
       // data processing
-      const dataTensor = ndarray(new Float32Array(data), [width, height, 3]);
+      const dataTensor = ndarray(new Float32Array(data), [width, height,4]);
       const dataProcessedTensor = ndarray(new Float32Array(width * height * 3), [1, 3, width, height]);
       ops.assign(dataProcessedTensor.pick(0, 0, null, null), dataTensor.pick(null, null, 0));
       ops.assign(dataProcessedTensor.pick(0, 1, null, null), dataTensor.pick(null, null, 1));
       ops.assign(dataProcessedTensor.pick(0, 2, null, null), dataTensor.pick(null, null, 2));
-      ops.divseq(dataProcessedTensor, 255);
+      ops.divseq(dataProcessedTensor, 255.0);
 
-      const tensor = [new Tensor(new Float32Array(width * height * 3), 'float32', [1, 3, width, height])];
+      const tensor = [new Tensor(new Float32Array(dataProcessedTensor.data), 'float32', [1, 3, width, height])];
       console.log(tensor)
-      tensor[0].data.set(dataProcessedTensor.data);
+      // tensor[0].data.set(dataProcessedTensor.data);
 
       // create a session
       const session = new InferenceSession({ backendHint: "wasm" });
@@ -110,27 +113,22 @@ export default {
       const outputMap = await session.run(tensor);
 
       const outputTensor = outputMap.values().next().value;
-      console.log(outputTensor)
 
-      const outdata = outputTensor.data.map((x)=>{
-        return x * 255
-      })
-      const dataOutput_3 = ndarray(new Float32Array(outdata), [width, height, 3]);
 
-      const dataOutput_4 = ndarray(new Float32Array(4*width*height), [width, height, 4]);
-      ops.assign(dataOutput_4.pick(null, null, 0), dataOutput_3.pick(null, null, 0));
-      ops.assign(dataOutput_4.pick(null, null, 1), dataOutput_3.pick(null, null, 1));
-      ops.assign(dataOutput_4.pick(null, null, 2), dataOutput_3.pick(null, null, 2));
+
+      const dataOutput_3 = ndarray(new Float32Array(outputTensor.data), [3,width, height]);
+
+      const dataOutput_4 = ndarray(new Float32Array(width*height*4), [width, height, 4]);
+      ops.assign(dataOutput_4.pick(null, null, 0), dataOutput_3.pick(0,null, null));
+      ops.assign(dataOutput_4.pick(null, null, 1), dataOutput_3.pick(1,null, null));
+      ops.assign(dataOutput_4.pick(null, null, 2), dataOutput_3.pick(2,null, null));
+      ops.mulseq(dataOutput_4,255.0)
+      ops.assigns(dataOutput_4.pick(null, null, 3), 255.0);
+
       this.outImage = new ImageData(new Uint8ClampedArray(dataOutput_4.data), width, height)
 
-      console.log(this.outImage)
 
-      let c = document.getElementById("output")
-      console.log(c)
-      let ct = c.getContext("2d")
-      ct.fillStyle = "red"
-      ct.fillRect(0, 0, 320, 240);
-      ct.putImageData(this.outImage,0,0,0,0,width, height)
+      ct.putImageData(this.outImage,0, 0)
 
     }
 
@@ -141,6 +139,9 @@ export default {
 <style scoped>
 .container{
 padding: 12px;
+}
+canvas{
+  background: darkolivegreen;
 }
 body {
   background-color: #f0f0f0;
