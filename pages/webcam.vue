@@ -4,6 +4,7 @@
       <v-flex xs12>
         <video ref="video" id="video" width="640" height="480" autoplay ></video>
       </v-flex>
+      <canvas ref="output" id="output" width="700" height="700"></canvas>
     </v-layout>
     <v-layout row wrap align-center justify-center>
       <v-flex shrink >
@@ -11,6 +12,7 @@
         <v-btn id="rm" v-on:click="remove()" class="red">Remove</v-btn>
         <v-btn id="m" v-on:click="runEnhance()" class="orange">RunModel</v-btn>
         <canvas ref="canvas" id="canvas" width="640" height="480"></canvas>
+        <v-img id="i"></v-img>
       </v-flex>
     </v-layout>
     <v-container grid-list-xl fluid>
@@ -41,7 +43,8 @@ export default {
       canvas: {},
       captures: [],
       choose_idx:[],
-      imgData:[]
+      imgData:[],
+      outImage: {}
     }
   },
   mounted() {
@@ -85,6 +88,7 @@ export default {
     async runEnhance() {
       let ctx = this.canvas.getContext("2d")
       const imageData = ctx.getImageData(0, 0, 320, 240);
+      console.log(imageData)
       const { data, width, height } = imageData;
 
       // data processing
@@ -102,12 +106,31 @@ export default {
       // create a session
       const session = new InferenceSession({ backendHint: "wasm" });
       // load the ONNX model file
-      const model = await session.loadModel('/unet_fast.onnx')
+      await session.loadModel('/unet_fast.onnx')
       const outputMap = await session.run(tensor);
-      console.log(model)
+
       const outputTensor = outputMap.values().next().value;
       console.log(outputTensor)
 
+      const outdata = outputTensor.data.map((x)=>{
+        return x * 255
+      })
+      const dataOutput_3 = ndarray(new Float32Array(outdata), [width, height, 3]);
+
+      const dataOutput_4 = ndarray(new Float32Array(4*width*height), [width, height, 4]);
+      ops.assign(dataOutput_4.pick(null, null, 0), dataOutput_3.pick(null, null, 0));
+      ops.assign(dataOutput_4.pick(null, null, 1), dataOutput_3.pick(null, null, 1));
+      ops.assign(dataOutput_4.pick(null, null, 2), dataOutput_3.pick(null, null, 2));
+      this.outImage = new ImageData(new Uint8ClampedArray(dataOutput_4.data), width, height)
+
+      console.log(this.outImage)
+
+      let c = document.getElementById("output")
+      console.log(c)
+      let ct = c.getContext("2d")
+      ct.fillStyle = "red"
+      ct.fillRect(0, 0, 320, 240);
+      ct.putImageData(this.outImage,0,0,0,0,width, height)
 
     }
 
