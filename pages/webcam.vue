@@ -109,11 +109,12 @@ export default {
       // create a session
       const session = new InferenceSession({ backendHint: "wasm" });
       // load the ONNX model file
-      await session.loadModel('unet_fast.onnx')
+      await session.loadModel('fast_depth.onnx')
+
       const outputMap = await session.run(tensor);
 
       const outputTensor = outputMap.values().next().value;
-
+      console.log(outputTensor)
 
 
       const dataOutput_3 = ndarray(new Float32Array(outputTensor.data), [3,width, height]);
